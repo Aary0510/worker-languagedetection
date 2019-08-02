@@ -24,13 +24,26 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * CLD2 Language detection integration test
  */
 public class LanguageDetectionCld2IT
 {
-    private String filename;
+    private String filename = "contacts.txt";
+//    private String filename = "extractEnEsDe.txt";
+//    private String filename = "EnErGe.txt";
+    
     private LanguageDetectorProvider provider;
     private LanguageDetector detector;
     private LanguageDetectorResult result;
@@ -52,14 +65,75 @@ public class LanguageDetectionCld2IT
         provider = new Cld2DetectorProvider();
         detector = provider.getLanguageDetector();
     }
+    
+    @Test
+    public void test() throws LanguageDetectorException, IOException
+    {
+        byte[] bytes = getAllData(filename);
+        settings = new LanguageDetectorSettings(true);
+        result = detector.detectLanguage(bytes, settings);
 
+        System.out.println("\nCurrent implementation:");
+        System.out.println("Status: " + result.getLanguageDetectorStatus());
+        for (DetectedLanguage ld : result.getLanguages()) {
+            System.out.println(ld.getLanguageCode() + ": " + ld.getConfidencePercentage());
+        }
+    }
+    
+    @Test
+    public void testLineByLIne() throws LanguageDetectorException, IOException, URISyntaxException
+    {
+        System.out.println("\nLine by Line:");
+        List<String> allLines = Files.readAllLines(Paths.get(this.getClass().getClassLoader().getResource(filename).toURI()));
+        runDetection(allLines);
+    }
+    
+    @Test
+    public void testWordByWord() throws LanguageDetectorException, IOException, URISyntaxException
+    {
+        System.out.println("\nWord by word:");
+        List<String> allLines = Files.readAllLines(Paths.get(this.getClass().getClassLoader().getResource(filename).toURI()));
+        
+        List<String> texts = new ArrayList<>();
+        for (String line : allLines) {
+            texts.addAll(Arrays.asList(line.split(" ")));
+        }
+        runDetection(texts);
+    }
+
+    private void runDetection(final List<String> texts) throws LanguageDetectorException, URISyntaxException, IOException
+    {
+        settings = new LanguageDetectorSettings(true);
+        
+        final Map<String, Integer> results = new HashMap<>();
+        int totalLength = 0;
+        for (final String text : texts) {
+            result = detector.detectLanguage(text.getBytes(), settings);
+
+            DetectedLanguage bestMatch = ((ArrayList<DetectedLanguage>)result.getLanguages()).get(0);
+
+            Integer textLength = results.get(bestMatch.getLanguageCode()) != null ? results.get(bestMatch.getLanguageCode()) : 0;
+            results.put(bestMatch.getLanguageCode(), textLength + text.length());
+            // System.out.println(">>> " + text);
+            totalLength += text.length();
+        }
+
+        final Map<String, Integer> sorted =
+            results.entrySet().stream().sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
+        
+        for (Map.Entry entry : sorted.entrySet()) {            
+            System.out.println(entry.getKey() + ": " + ((float)(Integer)entry.getValue()/totalLength));
+        }
+    }
+    
     /**
      * Test text with single language detection. Assert expected results
      *
      * @throws LanguageDetectorException
      * @throws IOException
      */
-    @Test
+//    @Test
     public void testSingleLanguage() throws LanguageDetectorException, IOException
     {
         multiLang = false;
@@ -88,7 +162,7 @@ public class LanguageDetectionCld2IT
      * @throws LanguageDetectorException
      * @throws IOException
      */
-    @Test
+//    @Test
     public void testMultiLanguage() throws LanguageDetectorException, IOException
     {
         multiLang = true;
@@ -121,7 +195,7 @@ public class LanguageDetectionCld2IT
      * @throws LanguageDetectorException
      * @throws IOException
      */
-    @Test
+//    @Test
     public void testSingleLanguageShortText() throws LanguageDetectorException, IOException
     {
         multiLang = false;
@@ -150,7 +224,7 @@ public class LanguageDetectionCld2IT
      * @throws LanguageDetectorException
      * @throws IOException
      */
-    @Test
+//    @Test
     public void testMultipleLanguageGibberish() throws LanguageDetectorException, IOException
     {
         multiLang = true;
@@ -181,7 +255,7 @@ public class LanguageDetectionCld2IT
      * @throws LanguageDetectorException
      * @throws IOException
      */
-    @Test
+//    @Test
     public void testLanguageUCS2() throws LanguageDetectorException, IOException
     {
         multiLang = false;
