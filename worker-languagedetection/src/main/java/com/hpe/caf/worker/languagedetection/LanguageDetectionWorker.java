@@ -30,6 +30,7 @@ import static com.hpe.caf.worker.languagedetection.LanguageDetectionUtilities.ge
 import static com.hpe.caf.worker.languagedetection.LanguageDetectionUtilities.addDetectedLanguageToDocument;
 
 import java.io.*;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Locale;
 
@@ -92,6 +93,8 @@ public final class LanguageDetectionWorker implements DocumentWorker
     @Override
     public void processDocument(final Document document) throws InterruptedException, DocumentWorkerTransientException
     {
+        final long startTime = System.currentTimeMillis();
+        
         final LanguageDetectionResultFormat resultFormat;
         try {
             resultFormat = getResultFormatToUse(document);
@@ -154,6 +157,9 @@ public final class LanguageDetectionWorker implements DocumentWorker
             //Thrown in the event that an input stream fails to close in one of the detect methods
             LOG.debug("Failed to close InputStream.");
         }
+        
+        long estimatedTime = System.currentTimeMillis() - startTime;        
+        LOG.info(">>>>> End to end: " + Duration.ofMillis(estimatedTime).toString());
     }
 
     private void detectLanguage(final Document document, final String fieldName, final boolean inMultiFieldMode,

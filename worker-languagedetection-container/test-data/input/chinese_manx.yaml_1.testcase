@@ -1,10 +1,10 @@
 ---
-tag: "chinese_manx.yaml"
+tag: "chinese_manx_1.yaml"
 testCaseInformation:
   associatedTickets: null
-  comments: "chinese_manx.yaml"
+  comments: "chinese_manx_1.yaml"
   description: null
-  testCaseId: "chinese_manx.yaml"
+  testCaseId: "chinese_manx_1.yaml"
 inputData:
   task:
     fields:

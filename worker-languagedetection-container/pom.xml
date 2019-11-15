@@ -113,6 +113,22 @@
                             </resources>
                         </configuration>
                     </execution>
+<!--                    <execution>
+                        <id>process-fasttext_model-files</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/resources/fasttext_model</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>/resources/fasttext_model</directory>
+                                    <filtering>true</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>-->
                 </executions>
             </plugin>
 
@@ -376,6 +392,7 @@
                                 <env>
                                     <CAF_APPNAME>test/worker-languagedetection</CAF_APPNAME>
                                     <CAF_CONFIG_PATH>/config</CAF_CONFIG_PATH>
+                                    <CAF_LOG_LEVEL>INFO</CAF_LOG_LEVEL>
                                 </env>
                                 <volumes>
                                     <from>

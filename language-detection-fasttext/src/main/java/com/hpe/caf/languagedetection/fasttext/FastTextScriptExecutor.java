@@ -15,6 +15,7 @@
  */
 package com.hpe.caf.languagedetection.fasttext;
 
+import java.time.Duration;
 import jep.Jep;
 import jep.JepException;
 
@@ -41,11 +42,16 @@ public final class FastTextScriptExecutor {
     private static final ThreadLocal<Jep> JEP_POOL = new ThreadLocal<Jep>() {
         @Override
         protected Jep initialValue() {
+            final long startTime = System.currentTimeMillis();
             try {
                 final Jep jep = new Jep();
                 jep.eval("import fasttext");
                 LOGGER.debug("Loading fasttext model.");
                 jep.eval("model = fasttext.load_model('/maven/resources/lid.176.bin')");
+                
+                long estimatedTime = System.currentTimeMillis() - startTime;        
+                LOGGER.info(">>>>> initialValue: " + Duration.ofMillis(estimatedTime).toString());
+                
                 return jep;
             } catch (final JepException e) {
                 throw new RuntimeException(e);
@@ -75,9 +81,9 @@ public final class FastTextScriptExecutor {
     public static LanguagePrediction detect(final String text) throws JepException {
         final Jep jep = JEP_POOL.get();
         jep.set("text", text);
-        jep.eval("prediction = model.predict(text)");
-        final Object prediction = jep.getValue("prediction");
-        jep.eval("del text, prediction");
+//        jep.eval("prediction = model.predict(text)");
+        final Object prediction = jep.getValue("model.predict(text)");
+//        jep.eval("del text, prediction");
          
         final List list = new ArrayList((Collection) prediction);
         final List<String> languages = new ArrayList<>((Collection) list.get(0));

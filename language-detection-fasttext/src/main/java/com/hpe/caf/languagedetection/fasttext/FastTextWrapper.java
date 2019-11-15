@@ -15,6 +15,7 @@
  */
 package com.hpe.caf.languagedetection.fasttext;
 
+import com.github.jfasttext.JFastText;
 import com.hpe.caf.languagedetection.DetectedLanguage;
 import com.neovisionaries.i18n.LanguageAlpha3Code;
 import java.io.BufferedReader;
@@ -22,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -45,8 +47,6 @@ public final class FastTextWrapper {
     private static final int WORDS_PER_SHORT_SENTENCE = 3;
     private static final String LANG_PREFIX = "__label__";
     
-    private static final ExecutorService JEP_THREAD_POOL = Executors.newSingleThreadExecutor();
-    
     private FastTextWrapper(){}
     
     public static LDResult detect(final InputStream textStream) {
@@ -57,6 +57,14 @@ public final class FastTextWrapper {
         try (final BufferedReader buffer = new BufferedReader(new InputStreamReader(textStream, StandardCharsets.UTF_8))) {
             int wordsPerSentence = WORDS_PER_LONG_SENTENCE;
             Sentence sentence = new Sentence("", 0, 0);
+            
+            System.out.println(">>>>> Detection start");
+            final long startTime = System.currentTimeMillis();
+            
+            final JFastText jft = new JFastText();
+            jft.loadModel("/maven/resources/lid.176.bin");
+//            jft.loadModel("C:\\Users\\strakar\\src\\caf\\worker-languagedetection\\worker-languagedetection-container\\resources\\fasttext_model\\lid.176.bin");
+            
             while(true) {
                 // get sentence of n words
                 sentence = getSentence(buffer, sentence, wordsPerSentence);
@@ -67,10 +75,11 @@ public final class FastTextWrapper {
                 
                 final String text = sentence.getText().substring(0, sentence.getSentenceEndIndex());
                 //get and process prediction results
-                final Callable<LanguagePrediction> callPython = () -> FastTextScriptExecutor.detect(text);
-                final Future<LanguagePrediction> futureResult = JEP_THREAD_POOL.submit(callPython);
-                final LanguagePrediction prediction = futureResult.get();
-                if (prediction != null) {
+
+                final JFastText.ProbLabel probLabel = jft.predictProba(text);
+                final LanguagePrediction prediction = new LanguagePrediction(probLabel.label, Math.exp(probLabel.logProb));
+
+                if (prediction.getLanguageCode() != null) {
                     // if acuracy for a long sentence is not suffictient then run prediction on its substring
                     if (wordsPerSentence == WORDS_PER_LONG_SENTENCE && prediction.getPrediction() < MIN_LONG_SENTENCE_ACCURACY) {
                         wordsPerSentence = WORDS_PER_SHORT_SENTENCE;
@@ -97,7 +106,11 @@ public final class FastTextWrapper {
                     LOGGER.warn("Detection results not provided for text: {}", text);
                 }
             }
-        } catch (final InterruptedException | ExecutionException | IOException ex) {
+            
+            long estimatedTime = System.currentTimeMillis() - startTime;        
+            System.out.println(">>>>> Detection: " + Duration.ofMillis(estimatedTime).toString());
+            
+        } catch (final IOException ex) {
             LOGGER.error("Detection failed.", ex);
         }
         final List<DetectedLanguage> languages = processResults(textLengthPerLanguage, totalTextLength);

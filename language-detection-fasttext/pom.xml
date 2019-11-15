@@ -107,6 +107,11 @@
             <artifactId>junit</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>io.github.carschno</groupId>
+            <artifactId>jfasttext</artifactId>
+            <version>0.9.1</version>
+        </dependency>
     </dependencies>
 
 </project>
